@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from flask import Flask, render_template
+from flask import Flask, render_template, session, redirect, url_for
 from flask import request
 from flask_script import Manager
 from flask_bootstrap import Bootstrap
@@ -13,19 +13,18 @@ app.config['SECRET_KEY'] = "jajgaijgakg;1894412!!!"
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 
-class NameFrom(Form):
+class NameForm(Form):
     name = StringField('What is your name?', validators=[Required()])
     submit = SubmitField('Submit')
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-     name = None
-     form = NameFrom()
-     if form.validate_on_submit():
-         name = form.name.data
-         form.name.data = ''
-     return render_template("index.html", form=form, name=name)
+    form = NameForm()
+    if form.validate_on_submit():
+        session['name'] = form.name.data
+        return redirect(url_for('index'))
+    return render_template("index.html", form=form, name=session.get('name'))
 
 
 @app.route('/user/<name>')
