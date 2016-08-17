@@ -2,12 +2,13 @@
 
 from flask import Flask, render_template, session, redirect, url_for, flash
 from flask import request
-from flask_script import Manager
+from flask_script import Manager, Shell
 from flask_bootstrap import Bootstrap
 from flask_wtf import Form
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate, MigrateCommand
 import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -19,9 +20,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
 db = SQLAlchemy(app)
-
 manager = Manager(app)
 bootstrap = Bootstrap(app)
+migrate = Migrate(app, db)
+manager.add_command('db', MigrateCommand)
+
+
+def make_shell_context():
+    return dict(app=app, db=db, User=User, Role=Role)
+manager.add_command("shell", Shell(make_context=make_shell_context))
 
 
 class NameForm(Form):
