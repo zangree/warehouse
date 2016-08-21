@@ -9,6 +9,8 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
+from flask_mail import Mail, Message
+from threading import Thread
 import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -16,14 +18,37 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "jajgaijgakg;1894412!!!"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(
-    basedir, 'data.slqite')
+    basedir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+app.config['MAIL_SERVER'] = 'smtp.163.com'
+app.config['MAIL_PORT'] = 25
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('USER_NAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('USER_PASSWORD')
+app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[FLASKY_WAREHOUSE]'
+app.config['FLASKY_MAIL_SENDER'] = 'Flasky Admin <zangree7@163.com>'
+app.config['FLASKY_ADMIN'] = os.environ.get('FLASKY_ADMIN')
 
 db = SQLAlchemy(app)
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 migrate = Migrate(app, db)
 manager.add_command('db', MigrateCommand)
+mail = Mail(app)
+
+
+def send_mail(to, subject, template, **kwargs):
+    msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX']+subject,
+                  sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])
+    msg.body = render_template(template+'.txt', **kwargs)
+    msg.html = render_template(template+'.html', **kwargs)
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
+
+def send_async_email(app, msg):
+    with app.app_context():
+        mail.msg
 
 
 def make_shell_context():
@@ -59,13 +84,22 @@ class User(db.Model):
 @app.route("/", methods=["GET", "POST"])
 def index():
     form = NameForm()
+    print 'what the fuck'
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
+        print os.environ.get('FLASKY_ADMIN')
         if user is None:
+            print 'False'
             user = User(username = form.name.data)
             db.session.add(user)
             session['known'] = False
+            if app.config['FLASKY_ADMIN']:
+                print 'mail has been sent'
+                send_mail(app.config['FLASKY_ADMIN'], 'New User',
+                          'mail/new_user', user=user)
+                print "successful"
         else:
+            print 'True'
             session['known'] = True
         session['name'] = form.name.data
         form.name.data = ""
