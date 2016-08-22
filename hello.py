@@ -22,6 +22,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['MAIL_SERVER'] = 'smtp.163.com'
 app.config['MAIL_PORT'] = 25
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = os.environ.get('USER_NAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('USER_PASSWORD')
 app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[FLASKY_WAREHOUSE]'
@@ -45,9 +47,10 @@ def send_mail(to, subject, template, **kwargs):
     thr.start()
     return thr
 
+
 def send_async_email(app, msg):
     with app.app_context():
-        mail.msg
+        mail.send(msg)
 
 
 def make_shell_context():
@@ -83,22 +86,16 @@ class User(db.Model):
 @app.route("/", methods=["GET", "POST"])
 def index():
     form = NameForm()
-    print 'what the fuck'
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
-        print os.environ.get('FLASKY_ADMIN')
         if user is None:
-            print 'False'
             user = User(username = form.name.data)
             db.session.add(user)
             session['known'] = False
             if app.config['FLASKY_ADMIN']:
-                print 'mail has been sent'
                 send_mail(app.config['FLASKY_ADMIN'], 'New User',
                           'mail/new_user', user=user)
-                print "successful"
         else:
-            print 'True'
             session['known'] = True
         session['name'] = form.name.data
         form.name.data = ""
