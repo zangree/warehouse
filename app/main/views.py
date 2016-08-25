@@ -1,7 +1,5 @@
 # -*- coding:utf-8 -*-
-from datetime import datetime
-from flask import render_template, session, redirect, url_for, \
-    current_app
+from flask import render_template, session, redirect, url_for, current_app
 
 from . import main
 from .forms import NameForm
@@ -10,7 +8,7 @@ from ..models import User
 from ..email import send_email
 
 
-@main.route('/', method=['GET', 'POST'])
+@main.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
     if form.validate_on_submit():
@@ -22,8 +20,10 @@ def index():
             if current_app.config['FLASKY_ADMIN']:
                 send_email(current_app.config['FLASKY_ADMIN'], 'New User',
                     'mail/new_user', user=user)
+        else:
+            session['known'] = True
+        session['name'] = form.name.data
         return redirect(url_for('.index'))
     return render_template('index.html',
                            form=form, name=session.get('name'),
-                           known=session.get('known', False),
-                           current_time=datetime.utcnow())
+                           known=session.get('known', False))
